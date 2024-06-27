@@ -1,0 +1,112 @@
+services:
+  config-server:
+    image: config-server
+    container_name: config-server
+    ports:
+      - "8070:8070"
+    networks:
+      - proiect_microservice_network
+  eureka-server:
+    image: eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8070/
+  gateway-server:
+    image: gateway-server
+    container_name: gateway-server
+    ports:
+      - "8071:8071"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+      - eureka-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8070/
+  net-tools:
+    image: minimal-net-tools
+    container_name: net-tools
+    networks:
+      - proiect_microservice_network
+    command: [ "sh", "-c", "while true; do sleep 3600; done" ]
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - proiect_microservice_network
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=awbd
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    ports:
+      - "3307:3306"
+    networks:
+      - proiect_microservice_network
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+  card-service:
+    image: card-service
+    container_name: card-service
+    ports:
+      - "8080:8080"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+      - eureka-server
+      - zipkin
+      - mysql
+  card-service2:
+    image: card-service
+    container_name: card-service2
+    environment:
+      - SERVER_PORT=8081
+    ports:
+      - "8081:8081"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+      - eureka-server
+      - zipkin
+      - mysql
+  transaction-service:
+    image: transaction-service
+    container_name: transaction-service
+    ports:
+      - "8082:8082"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+      - eureka-server
+      - zipkin
+      - mysql
+  transaction-service2:
+    image: transaction-service
+    container_name: transaction-service2
+    environment:
+      - SERVER_PORT=8083
+    ports:
+      - "8083:8083"
+    networks:
+      - proiect_microservice_network
+    depends_on:
+      - config-server
+      - eureka-server
+      - zipkin
+      - mysql
+networks:
+  proiect_microservice_network:
